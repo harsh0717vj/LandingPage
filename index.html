@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartCyclone AI - AI-Powered Tropical Cyclone Detection, Classification &amp; Prediction</title>
+  <meta name="description" content="AI/ML based system for identification, classification, and prediction of tropical cyclone patterns using multi-source satellite data (SIH Problem Statement SIH26070).">
+
+  <!-- External Libraries (Leaflet, Chart.js, Font Awesome) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Application Custom Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/leaflet-custom.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="brand-section">
+        <div class="brand-logo-icon">
+          <i class="fas fa-hurricane"></i>
+        </div>
+        <div class="brand-meta">
+          <h2>SmartCyclone AI</h2>
+          <span class="sih-badge">SIH26070 • PROTOTYPE</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <div class="nav-category-title">SURVEILLANCE &amp; PIPELINE</div>
+        <a href="#dashboard" class="nav-link active" data-view="dashboard" id="nav-dashboard">
+          <i class="fas fa-satellite-dish"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#upload" class="nav-link" data-view="upload" id="nav-upload">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <span>Satellite Analysis</span>
+        </a>
+        <a href="#detection" class="nav-link" data-view="detection" id="nav-detection">
+          <i class="fas fa-bullseye"></i>
+          <span>Cyclone Detection</span>
+        </a>
+        <a href="#prediction" class="nav-link" data-view="prediction" id="nav-prediction">
+          <i class="fas fa-route"></i>
+          <span>Predictions</span>
+        </a>
+
+        <div class="nav-category-title">GEOSPATIAL &amp; TELEMETRY</div>
+        <a href="#map" class="nav-link" data-view="map" id="nav-map">
+          <i class="fas fa-map-marked-alt"></i>
+          <span>Live Radar Map</span>
+        </a>
+        <a href="#historical" class="nav-link" data-view="historical" id="nav-historical">
+          <i class="fas fa-history"></i>
+          <span>Historical Tracks</span>
+        </a>
+        <a href="#graphs" class="nav-link" data-view="graphs" id="nav-graphs">
+          <i class="fas fa-chart-line"></i>
+          <span>Wind &amp; Pressure</span>
+        </a>
+
+        <div class="nav-category-title">AI BENCHMARKS &amp; DATA</div>
+        <a href="#performance" class="nav-link" data-view="performance" id="nav-performance">
+          <i class="fas fa-brain"></i>
+          <span>Model Performance</span>
+        </a>
+        <a href="#data-table" class="nav-link" data-view="data-table" id="nav-data-table">
+          <i class="fas fa-database"></i>
+          <span>Cyclone Archive</span>
+        </a>
+        <a href="#settings" class="nav-link" data-view="settings" id="nav-settings">
+          <i class="fas fa-sliders-h"></i>
+          <span>Settings / ML API</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="telemetry-status-card">
+          <div class="status-indicator">
+            <div class="status-dot" id="systemHealthDot"></div>
+            <span id="systemHealthText">Mock ML Adapter Active</span>
+          </div>
+          <div style="font-size: 0.65rem; color: #64748b; margin-top: 4px;">Spring Boot REST Architecture</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Application Area -->
+    <main class="app-main">
+      <!-- Topbar Header -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button class="mobile-toggle-btn" id="mobileMenuToggle" aria-label="Toggle Navigation">
+            <i class="fas fa-bars"></i>
+          </button>
+          <div class="page-breadcrumb">
+            <h1 class="page-title-text" id="topbarTitle">Command Center Dashboard</h1>
+            <span class="page-subtitle-text" id="topbarSubtitle">Real-Time Planetary &amp; Cyclone Surveillance</span>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="prototype-notice-pill">
+            <i class="fas fa-flask"></i>
+            <span>PROTOTYPE / DEMO DATA</span>
+          </div>
+          <div class="live-time-display" id="topbarClock">--:--:-- UTC</div>
+          <button class="action-btn" onclick="App.navigateTo('upload')">
+            <i class="fas fa-satellite"></i>
+            <span>New Analysis</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Page Views Container -->
+      <div class="page-view-container">
+
+        <!-- ================= VIEW 1: DASHBOARD ================= -->
+        <section class="view-section active" id="view-dashboard">
+          <!-- Top Stats Row -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Total Cyclones Analyzed</span>
+                <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
+              </div>
+              <div class="stat-value" id="statTotalAnalyzed">27</div>
+              <div class="stat-subtext">Historical &amp; Active Indian Ocean Records</div>
+            </div>
+
+            <div class="stat-card critical">
+              <div class="stat-header">
+                <span class="stat-title">Active Cyclones</span>
+                <div class="stat-icon"><i class="fas fa-hurricane"></i></div>
+              </div>
+              <div class="stat-value" id="statActiveCyclones">3</div>
+              <div class="stat-subtext">Under continuous satellite monitoring</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Predictions Generated</span>
+                <div class="stat-icon"><i class="fas fa-route"></i></div>
+              </div>
+              <div class="stat-value" id="statPredictions">18</div>
+              <div class="stat-subtext">6h, 12h, 24h &amp; 48h Neural Forecasts</div>
+            </div>
+
+            <div class="stat-card warning">
+              <div class="stat-header">
+                <span class="stat-title">High Risk Cyclones</span>
+                <div class="stat-icon"><i class="fas fa-radiation"></i></div>
+              </div>
+              <div class="stat-value" id="statHighRisk">2</div>
+              <div class="stat-subtext">Category 3+ with coastal landfall threat</div>
+            </div>
+          </div>
+
+          <!-- Featured Active Cyclone Telemetry HUD Card -->
+          <div class="cyclone-hud-card" style="margin-bottom: 24px;">
+            <div class="cyclone-hud-header">
+              <div>
+                <div style="font-size: 0.75rem; color: #38bdf8; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px;">
+                  <i class="fas fa-satellite"></i> LIVE GEOSPATIAL TELEMETRY FEED (BAY OF BENGAL)
+                </div>
+                <div class="cyclone-title-large">
+                  <span id="hudCycloneName">Cyclone Remal</span>
+                  <span class="badge-risk-critical"><i class="fas fa-shield-alt"></i> HIGH RISK (CAT 3)</span>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="action-btn" onclick="App.navigateTo('map')">
+                  <i class="fas fa-map"></i> View Radar Map
+                </button>
+                <button class="action-btn" style="background: rgba(15, 23, 42, 0.8); border-color: rgba(56, 189, 248, 0.3);" onclick="App.navigateTo('prediction')">
+                  <i class="fas fa-clock"></i> Forecast Timeline
+                </button>
+              </div>
+            </div>
+
+            <div class="cyclone-hud-grid">
+              <div class="hud-item">
+                <span class="hud-label">IMD Classification</span>
+                <span class="hud-value" id="hudCategory" style="font-size: 0.95rem;">Category 3 (Very Severe)</span>
+              </div>
+              <div class="hud-item">
+                <span class="hud-label">Max Sustained Winds</span>
+                <span class="hud-value highlight" id="hudWindSpeed">145 km/h</span>
+              </div>
+              <div class="hud-item">
+                <span class="hud-label">Central Pressure</span>
+                <span class="hud-value" id="hudPressure">945 hPa</span>
+              </div>
+              <div class="hud-item">
+                <span class="hud-label">Eye Coordinates</span>
+                <span class="hud-value" id="hudCoordinates">15.24°N, 88.75°E</span>
+              </div>
+              <div class="hud-item">
+                <span class="hud-label">Movement Vector</span>
+                <span class="hud-value" id="hudDirection">North-East (045°)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mini Radar Map & Quick Actions Grid -->
+          <div style="display: grid; grid-template-columns: 1.4fr 0.8fr; gap: 20px;">
+            <div class="dashboard-panel">
+              <div class="panel-header">
+                <div class="panel-title-wrap">
+                  <i class="fas fa-compass" style="color: #06b6d4;"></i>
+                  <span class="panel-title">Active Cyclone Geospatial Trajectory</span>
+                </div>
+                <span class="panel-tag">Bay of Bengal Sector</span>
+              </div>
+              <div class="map-card-wrapper" style="height: 340px;">
+                <div id="dashboardMiniMap" style="width: 100%; height: 100%;"></div>
+              </div>
+            </div>
+
+            <div class="dashboard-panel">
+              <div class="panel-header">
+                <div class="panel-title-wrap">
+                  <i class="fas fa-bolt" style="color: #f59e0b;"></i>
+                  <span class="panel-title">Rapid Assessment Pipeline</span>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="background: rgba(8, 14, 26, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 14px;">
+                  <div style="font-weight: 600; font-size: 0.88rem; color: #ffffff; margin-bottom: 4px;">
+                    <i class="fas fa-cloud-sun-rain" style="color: #38bdf8;"></i> Ingest Satellite Imagery
+                  </div>
+                  <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px;">
+                    Upload INSAT-3D, INSAT-3DR or Himawari multispectral imagery for real-time AI pattern classification.
+                  </p>
+                  <button class="action-btn" style="width: 100%; justify-content: center;" onclick="App.navigateTo('upload')">
+                    Launch AI Ingestion Pipeline
+                  </button>
+                </div>
+
+                <div style="background: rgba(8, 14, 26, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 14px;">
+                  <div style="font-weight: 600; font-size: 0.88rem; color: #ffffff; margin-bottom: 4px;">
+                    <i class="fas fa-microchip" style="color: #10b981;"></i> Model Benchmark Telemetry
+                  </div>
+                  <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px;">
+                    Evaluate deep neural network accuracy (94.6%), precision, recall, and trajectory MAE errors.
+                  </p>
+                  <button class="action-btn" style="width: 100%; justify-content: center; background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #34d399;" onclick="App.navigateTo('performance')">
+                    View Model Benchmarks
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW 2: SATELLITE IMAGE UPLOAD ================= -->
+        <section class="view-section" id="view-upload">
+          <div class="upload-wrapper">
+            <!-- Left Side: Upload Dropzone & Sample Selector -->
+            <div>
+              <div class="dashboard-panel">
+                <div class="panel-header">
+                  <div class="panel-title-wrap">
+                    <i class="fas fa-file-upload" style="color: #38bdf8;"></i>
+                    <span class="panel-title">Satellite Image Upload &amp; Ingestion</span>
+                  </div>
+                  <span class="panel-tag">Multi-Spectral Radiance</span>
+                </div>
+
+                <!-- Dropzone Area -->
+                <div class="upload-dropzone" id="uploadDropzone" onclick="document.getElementById('satelliteFileInput').click()">
+                  <input type="file" id="satelliteFileInput" style="display: none;" accept="image/png, image/jpeg, image/tiff, .nc, .hdf">
+                  <div class="upload-icon-circle">
+                    <i class="fas fa-satellite-dish"></i>
+                  </div>
+                  <h3 class="upload-title">Drag &amp; Drop Satellite Imagery</h3>
+                  <p class="upload-subtitle">Supports INSAT-3D TIR/VIS, INSAT-3DR, Himawari-8, NetCDF, GeoTIFF, PNG &amp; JPG</p>
+                  <button type="button" class="action-btn" style="pointer-events: none;">
+                    <i class="fas fa-folder-open"></i> Browse Local Files
+                  </button>
+                </div>
+
+                <!-- Demo Sample Satellite Images -->
+                <div class="sample-selector-card" style="margin-top: 20px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.85rem; font-weight: 600; color: #ffffff;">
+                      <i class="fas fa-layer-group" style="color: #06b6d4;"></i> Or Select Preloaded Satellite Sample:
+                    </span>
+                    <span style="font-size: 0.72rem; color: #94a3b8;">4 Demonstration Scenarios</span>
+                  </div>
+                  <div class="sample-grid" id="sampleImagesGrid">
+                    <!-- Populated by JS -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Side: Preview HUD & AI Pipeline Trigger -->
+            <div>
+              <div class="dashboard-panel">
+                <div class="panel-header">
+                  <div class="panel-title-wrap">
+                    <i class="fas fa-eye" style="color: #06b6d4;"></i>
+                    <span class="panel-title">Raw Ingestion Preview</span>
+                  </div>
+                  <button class="action-btn" style="padding: 3px 8px; font-size: 0.72rem; background: transparent; border-color: rgba(255,255,255,0.1);" onclick="UploadDemoService.clearSelectedImage()">
+                    <i class="fas fa-undo"></i> Reset
+                  </button>
+                </div>
+
+                <!-- Image Preview HUD Box -->
+                <div class="preview-card" style="position: relative;">
+                  <!-- Scanning Overlay -->
+                  <div class="scanner-overlay" id="scannerOverlay">
+                    <div class="scan-laser"></div>
+                    <div class="radar-spinner"></div>
+                    <div style="font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: 700; color: #ffffff; letter-spacing: 0.05em;">
+                      Analyzing satellite imagery...
+                    </div>
+                    <div style="font-size: 0.75rem; color: #38bdf8; font-family: 'JetBrains Mono', monospace; margin-top: 6px;">
+                      Deep CNN-Transformer Spatiotemporal Feature Extraction
+                    </div>
+                  </div>
+
+                  <div id="imagePreviewHUD" style="width: 100%;">
+                    <!-- Dynamically Populated -->
+                  </div>
+                </div>
+
+                <!-- Metadata details -->
+                <div id="selectedImageMetadata" style="margin: 16px 0;">
+                  <!-- Dynamically populated -->
+                </div>
+
+                <!-- Action Button -->
+                <button class="action-btn" id="analyzeActionBtn" style="width: 100%; height: 48px; font-size: 0.95rem; justify-content: center;" onclick="UploadDemoService.runAIPipeline()">
+                  <i class="fas fa-brain"></i> Execute AI Inference Pipeline
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW 3: CYCLONE DETECTION & CLASSIFICATION ================= -->
+        <section class="view-section" id="view-detection">
+          <div class="dashboard-panel" style="background: linear-gradient(135deg, rgba(16, 26, 48, 0.95) 0%, rgba(12, 19, 34, 0.9) 100%);">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <i class="fas fa-check-double" style="color: #10b981;"></i>
+                <span class="panel-title">AI Detection &amp; Classification Intelligence</span>
+              </div>
+              <div class="prototype-notice-pill">
+                <i class="fas fa-microchip"></i>
+                <span>Model Confidence Analysis</span>
+              </div>
+            </div>
+
+            <!-- Detection Status Cards Grid -->
+            <div class="detection-hero-card">
+              <!-- Detection Box -->
+              <div class="detection-box">
+                <div>
+                  <span style="font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase;">STAGE 1: DETECTION</span>
+                  <div id="detStatusBadge" style="margin: 8px 0; font-size: 1.15rem;">
+                    <span style="color: #ef4444; font-weight: 700;"><i class="fas fa-exclamation-triangle"></i> CYCLONE DETECTED: YES</span>
+                  </div>
+                  <p style="font-size: 0.78rem; color: #94a3b8;">
+                    Closed isobaric cyclonic vorticity detected from multi-spectral radiance gradients.
+                  </p>
+                </div>
+                <div class="confidence-gauge-wrap">
+                  <div class="circular-gauge" id="gaugeDetection" style="--percent: 94;">
+                    <span id="detConfidenceVal">94%</span>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75rem; color: #64748b;">Detection Confidence</div>
+                    <div style="font-weight: 700; color: #38bdf8;">High Certainty</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Classification Box -->
+              <div class="detection-box">
+                <div>
+                  <span style="font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase;">STAGE 2: CLASSIFICATION</span>
+                  <div style="margin: 8px 0;">
+                    <div id="classCategoryVal" style="font-size: 1.25rem; font-weight: 700; color: #ffffff;">Category 3</div>
+                    <div id="classTypeVal" style="font-size: 0.82rem; color: #f59e0b; font-weight: 600;">Very Severe Cyclonic Storm (VSCS)</div>
+                  </div>
+                  <p style="font-size: 0.78rem; color: #94a3b8;">
+                    IMD standard scale classification matching central dense overcast (CDO) spiral curvature.
+                  </p>
+                </div>
+                <div class="confidence-gauge-wrap">
+                  <div class="circular-gauge" id="gaugeClassification" style="--percent: 92;">
+                    <span id="classConfVal">92%</span>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75rem; color: #64748b;">Classification Confidence</div>
+                    <div style="font-weight: 700; color: #38bdf8;">High Confidence</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Environmental Parameters Box -->
+              <div class="detection-box">
+                <span style="font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 12px;">STAGE 3: ENVIRONMENTAL TELEMETRY</span>
+                
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 0.82rem;">
+                    <span style="color: #94a3b8;">Estimated Wind Speed:</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #f87171;" id="detWindVal">145 km/h</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.82rem;">
+                    <span style="color: #94a3b8;">Central Atmospheric Pressure:</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #38bdf8;" id="detPressVal">945 hPa</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.82rem;">
+                    <span style="color: #94a3b8;">Center Eye Coordinates:</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #ffffff;" id="detCoordsVal">15.24°N, 88.75°E</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.82rem;">
+                    <span style="color: #94a3b8;">Steering Direction Vector:</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #06b6d4;" id="detDirVal">North-East (045°)</span>
+                  </div>
+                </div>
+
+                <div style="margin-top: 14px; display: flex; gap: 8px;">
+                  <button class="action-btn" style="width: 100%; justify-content: center;" onclick="App.navigateTo('prediction')">
+                    <i class="fas fa-forward"></i> Proceed to Prediction
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW 4: CYCLONE PREDICTION ================= -->
+        <section class="view-section" id="view-prediction">
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <i class="fas fa-clock" style="color: #38bdf8;"></i>
+                <span class="panel-title">24-Hour Spatiotemporal Trajectory &amp; Intensity Forecast</span>
+              </div>
+              <span class="panel-tag">ConvLSTM Spatiotemporal Model</span>
+            </div>
+
+            <!-- Visual Flow Timeline: NOW -> +6H -> +12H -> +24H -->
+            <div class="timeline-track-grid">
+              <!-- Node 1: NOW -->
+              <div class="timeline-node now">
+                <span class="timeline-tag"><i class="fas fa-crosshairs"></i> CURRENT (NOW)</span>
+                <div style="font-weight: 700; color: #ffffff; margin-bottom: 8px; font-size: 1rem;">Category 3</div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Coordinates:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #ffffff;">15.24°N, 88.75°E</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Wind Speed:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #f87171; font-weight: 600;">145 km/h</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Pressure:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #38bdf8;">945 hPa</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Confidence:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #10b981; font-weight: 700;">94%</span>
+                </div>
+              </div>
+
+              <!-- Node 2: +6H -->
+              <div class="timeline-node">
+                <span class="timeline-tag"><i class="fas fa-arrow-right"></i> +6 HOURS FORECAST</span>
+                <div style="font-weight: 700; color: #ffffff; margin-bottom: 8px; font-size: 1rem;">Category 3 (Intensifying)</div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Coordinates:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #ffffff;">16.10°N, 89.30°E</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Wind Speed:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #f87171; font-weight: 600;">155 km/h</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Pressure:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #38bdf8;">940 hPa</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Confidence:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #10b981; font-weight: 700;">91%</span>
+                </div>
+              </div>
+
+              <!-- Node 3: +12H -->
+              <div class="timeline-node">
+                <span class="timeline-tag"><i class="fas fa-arrow-right"></i> +12 HOURS FORECAST</span>
+                <div style="font-weight: 700; color: #ffffff; margin-bottom: 8px; font-size: 1rem;">Category 4 (Extremely Severe)</div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Coordinates:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #ffffff;">17.05°N, 89.95°E</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Wind Speed:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #f87171; font-weight: 600;">165 km/h</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Pressure:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #38bdf8;">934 hPa</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Confidence:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #38bdf8; font-weight: 700;">87%</span>
+                </div>
+              </div>
+
+              <!-- Node 4: +24H -->
+              <div class="timeline-node">
+                <span class="timeline-tag"><i class="fas fa-arrow-right"></i> +24 HOURS FORECAST</span>
+                <div style="font-weight: 700; color: #ffffff; margin-bottom: 8px; font-size: 1rem;">Category 4 (Peak Intensity)</div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Coordinates:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #ffffff;">18.90°N, 90.80°E</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Wind Speed:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #f87171; font-weight: 600;">175 km/h</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Pressure:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #38bdf8;">928 hPa</span>
+                </div>
+                <div class="timeline-param-row">
+                  <span style="color: #94a3b8;">Confidence:</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; color: #38bdf8; font-weight: 700;">82%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Prediction Explanation Panel -->
+            <div style="background: rgba(8, 14, 26, 0.7); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; margin-top: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 10px;">
+                <span style="font-weight: 700; font-size: 0.95rem; color: #ffffff;">
+                  <i class="fas fa-file-contract" style="color: #38bdf8;"></i> Comprehensive Prediction Summary
+                </span>
+                <span style="font-size: 0.72rem; color: #f59e0b; background: rgba(245, 158, 11, 0.15); padding: 3px 8px; border-radius: 4px;">
+                  Model Forecast Confidence: 87%
+                </span>
+              </div>
+              <p style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.6;">
+                The cyclonic vortex is steered by an upper-tropospheric subtropical ridge moving in a <strong>North-Easterly vector</strong> across the Central Bay of Bengal. Rapid intensification is forecasted over the next 18 hours due to high Sea Surface Temperatures (SST &gt; 30.5°C) and low vertical wind shear. Landfall cone centers between <strong>North Odisha and West Bengal / Bangladesh coastline</strong> around T+28 hours.
+              </p>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW 5: INTERACTIVE CYCLONE MAP ================= -->
+        <section class="view-section" id="view-map">
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <i class="fas fa-satellite" style="color: #06b6d4;"></i>
+                <span class="panel-title">Interactive Geospatial Radar &amp; Track Forecast Map</span>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="action-btn" style="padding: 4px 10px; font-size: 0.75rem;" onclick="MapService.recenter()">
+                  <i class="fas fa-crosshairs"></i> Recenter Bay of Bengal
+                </button>
+              </div>
+            </div>
+
+            <!-- Interactive Map Wrapper -->
+            <div class="map-card-wrapper" style="height: 560px;">
+              <!-- Map Layers HUD Selector -->
+              <div class="map-layer-selector">
+                <button class="layer-btn active" onclick="MapService.switchBaseLayer('dark')">Dark Radar</button>
+                <button class="layer-btn" onclick="MapService.switchBaseLayer('satellite')">Satellite Imagery</button>
+                <button class="layer-btn" onclick="MapService.switchBaseLayer('thermal')">Ocean Thermal</button>
+              </div>
+
+              <!-- Map Legend HUD -->
+              <div class="map-hud-legend">
+                <div class="legend-item">
+                  <div class="legend-color-dot historical"></div>
+                  <span>Historical Track (-48h)</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-color-dot current"></div>
+                  <span>Current Eye (Live Radar)</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-color-dot predicted"></div>
+                  <span>Predicted Path (+24h)</span>
+                </div>
+              </div>
+
+              <div id="cycloneMap" style="width: 100%; height: 100%;"></div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW 6: HISTORICAL CYCLONE TRACKS ================= -->
+        <section class="view-section" id="view-historical">
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <i class="fas fa-history" style="color: #f59e0b;"></i>
+                <span class="panel-title">Historical Benchmark Cyclones (Indian Ocean &amp; Bay of Bengal)</span>
+              </div>
+              <span class="panel-tag">Comparative Dataset</span>
+            </div>
+
+            <p style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 16px;">
+              Select historical cyclone case studies to visualize past landfall trajectories, peak wind velocities, and pressure profiles.
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+              <div class="stat-card" style="cursor: pointer;" onclick="App.viewHistoricalCyclone(1)">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-weight: 700; color: #ffffff; font-size: 1.05rem;">Cyclone Remal</span>
+                  <span class="badge-category badge-cat-3">Cat 3</span>
+                </div>
+                <div style="font-size: 0.78rem; color: #94a3b8;">Bay of Bengal • May 2026</div>
+                <div style="margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #38bdf8;">
+                  Max Wind: 145 km/h | Min Press: 945 hPa
+                </div>
+              </div>
+
+              <div class="stat-card" style="cursor: pointer;" onclick="App.viewHistoricalCyclone(2)">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-weight: 700; color: #ffffff; font-size: 1.05rem;">Cyclone Biparjoy</span>
+                  <span class="badge-category badge-cat-3">Cat 3</span>
+                </div>
+                <div style="font-size: 0.78rem; color: #94a3b8;">Arabian Sea • June 2023</div>
+                <div style="margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #38bdf8;">
+                  Max Wind: 165 km/h | Min Press: 954 hPa
+                </div>
+              </div>
+
+              <div class="stat-card critical" style="cursor: pointer;" onclick="App.viewHistoricalCyclone(3)">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-weight: 700; color: #ffffff; font-size: 1.05rem;">Cyclone Mocha</span>
+                  <span class="badge-category badge-cat-5">Cat 5</span>
+                </div>
+                <div style="font-size: 0.78rem; color: #94a3b8;">Bay of Bengal • May 2023</div>
+                <div style="margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #f87171;">
+                  Max Wind: 215 km/h | Min Press: 918 hPa
+                </div>
+              </div>
+
+              <div class="stat-card critical" style="cursor: pointer;" onclick="App.viewHistoricalCyclone(5)">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-weight: 700; color: #ffffff; font-size: 1.05rem;">Super Cyclone Amphan</span>
+                  <span class="badge-category badge-cat-5">Cat 5 Super</span>
+                </div>
+                <div style="font-size: 0.78rem; color: #94a3b8;">Bay of Bengal • May 2020</div>
+                <div style="margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #f87171;">
+                  Max Wind: 260 km/h | Min Press: 907 hPa
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW 7: WIND SPEED & PRESSURE GRAPHS ================= -->
+        <section class="view-section" id="view-graphs">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <!-- Wind Speed Chart -->
+            <div class="dashboard-panel">
+              <div class="panel-header">
+                <div class="panel-title-wrap">
+                  <i class="fas fa-wind" style="color: #38bdf8;"></i>
+                  <span class="panel-title">Sustained Wind Speed Progression</span>
+                </div>
+                <span class="panel-tag">km/h vs Time</span>
+              </div>
+              <div style="height: 320px; position: relative;">
+                <canvas id="windSpeedChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Central Pressure Chart -->
+            <div class="dashboard-panel">
+              <div class="panel-header">
+                <div class="panel-title-wrap">
+                  <i class="fas fa-tachometer-alt" style="color: #ef4444;"></i>
+                  <span class="panel-title">Central Atmospheric Pressure Drop</span>
+                </div>
+                <span class="panel-tag">hPa vs Time</span>
+              </div>
+              <div style="height: 320px; position: relative;">
+                <canvas id="pressureChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW 8: MODEL PERFORMANCE BENCHMARKS ================= -->
+        <section class="view-section" id="view-performance">
+          <!-- Illustrative Banner -->
+          <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 12px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-info-circle" style="color: #fbbf24; font-size: 1.3rem;"></i>
+            <div>
+              <div style="font-weight: 700; color: #fbbf24; font-size: 0.9rem;">Illustrative Prototype Metrics</div>
+              <div style="font-size: 0.78rem; color: #e2e8f0;">
+                These values illustrate the performance dashboard architecture. Real benchmark scores will be populated automatically when the dedicated ML training pipeline completes.
+              </div>
+            </div>
+          </div>
+
+          <!-- Overall Metric Summary Cards -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Overall Accuracy</span>
+                <div class="stat-icon"><i class="fas fa-bullseye"></i></div>
+              </div>
+              <div class="stat-value" style="color: #10b981;">94.6%</div>
+              <div class="stat-subtext">Across 18,500 Multi-Spectral Frames</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Precision Score</span>
+                <div class="stat-icon"><i class="fas fa-crosshairs"></i></div>
+              </div>
+              <div class="stat-value">93.8%</div>
+              <div class="stat-subtext">Low False Positive Rate</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Recall Rate</span>
+                <div class="stat-icon"><i class="fas fa-filter"></i></div>
+              </div>
+              <div class="stat-value">95.2%</div>
+              <div class="stat-subtext">Critical Disturbance Detection</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Track MAE (24h Lead)</span>
+                <div class="stat-icon"><i class="fas fa-ruler-combined"></i></div>
+              </div>
+              <div class="stat-value" style="color: #38bdf8;">42.5 km</div>
+              <div class="stat-subtext">Mean Absolute Position Error</div>
+            </div>
+          </div>
+
+          <!-- Architecture Breakdown & Training History Curves -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div class="dashboard-panel">
+              <div class="panel-header">
+                <div class="panel-title-wrap">
+                  <i class="fas fa-cubes" style="color: #06b6d4;"></i>
+                  <span class="panel-title">Model Architecture Breakdown</span>
+                </div>
+              </div>
+              <div id="modelCategoriesGrid" style="display: grid; gap: 12px;">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+
+            <div class="dashboard-panel">
+              <div class="panel-header">
+                <div class="panel-title-wrap">
+                  <i class="fas fa-chart-area" style="color: #10b981;"></i>
+                  <span class="panel-title">Epoch Loss &amp; Validation Convergence</span>
+                </div>
+              </div>
+              <div style="height: 320px; position: relative;">
+                <canvas id="modelTrainingChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW 9: HISTORICAL CYCLONE DATABASE ================= -->
+        <section class="view-section" id="view-data-table">
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <i class="fas fa-table" style="color: #38bdf8;"></i>
+                <span class="panel-title">Searchable Cyclone Archive Database</span>
+              </div>
+              <span class="panel-tag">Multi-Year Repertoire</span>
+            </div>
+
+            <!-- Search and Filter Bar -->
+            <div style="display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;">
+              <input type="text" id="cycloneSearchInput" placeholder="Search cyclone by name or code (e.g. Remal, Mocha)..." style="flex: 1; min-width: 240px; background: rgba(8,14,26,0.8); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 14px; color: #ffffff; font-size: 0.85rem;">
+              
+              <select id="regionFilterSelect" style="background: rgba(8,14,26,0.8); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 14px; color: #ffffff; font-size: 0.85rem;">
+                <option value="">All Basins / Regions</option>
+                <option value="Bay of Bengal">Bay of Bengal</option>
+                <option value="Arabian Sea">Arabian Sea</option>
+              </select>
+
+              <select id="categoryFilterSelect" style="background: rgba(8,14,26,0.8); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 14px; color: #ffffff; font-size: 0.85rem;">
+                <option value="">All Categories</option>
+                <option value="Category 2">Category 2</option>
+                <option value="Category 3">Category 3</option>
+                <option value="Category 5">Category 5 (Super)</option>
+              </select>
+            </div>
+
+            <!-- Table -->
+            <div class="table-container">
+              <table class="cyclone-table">
+                <thead>
+                  <tr>
+                    <th>Cyclone Name</th>
+                    <th>Code</th>
+                    <th>Region</th>
+                    <th>Category</th>
+                    <th>Max Wind</th>
+                    <th>Min Pressure</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="historicalTableBody">
+                  <!-- Populated dynamically by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW 10: SETTINGS & ML API ENDPOINT ================= -->
+        <section class="view-section" id="view-settings">
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <i class="fas fa-network-wired" style="color: #06b6d4;"></i>
+                <span class="panel-title">AI / Machine Learning Microservice Integration</span>
+              </div>
+              <span class="panel-tag">REST API Contract</span>
+            </div>
+
+            <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 20px; line-height: 1.6;">
+              The Spring Boot backend utilizes the <code>MLServiceClient</code> interface pattern. For the SIH 2026 prototype demonstration, a high-fidelity meteorological mock simulation adapter is enabled. The external ML team can seamlessly plug their Python/PyTorch/FastAPI microservice by changing the endpoint configuration.
+            </p>
+
+            <div style="background: rgba(8,14,26,0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px; margin-bottom: 24px;">
+              <h4 style="font-family: var(--font-heading); font-size: 1rem; color: #ffffff; margin-bottom: 12px;">
+                <i class="fas fa-plug" style="color: #38bdf8;"></i> External ML Endpoint URL Configuration
+              </h4>
+              
+              <div style="display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;">
+                <input type="text" id="customMlUrlInput" value="http://localhost:8000/api/v1/cyclone/predict" style="flex: 1; min-width: 280px; background: #060a12; border: 1px solid var(--border-active); border-radius: 6px; padding: 10px 14px; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">
+                <button class="action-btn" onclick="App.testMLConnection()">
+                  <i class="fas fa-vial"></i> Test Connectivity
+                </button>
+              </div>
+              <div style="font-size: 0.75rem; color: #64748b;">
+                Configurable via <code>application.properties</code> setting: <code>smartcyclone.ml.external-api-url</code>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+              <div style="background: #060a12; border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: #38bdf8; margin-bottom: 8px;">
+                  EXPECTED REQUEST PAYLOAD (POST /ml/predict)
+                </div>
+                <pre style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #cbd5e1; overflow-x: auto; line-height: 1.4;">{
+  "imageId": "insat3d_20260524_0600.png",
+  "satelliteSource": "INSAT-3D",
+  "imageDataBase64": "&lt;base64-encoded-radiance-stream&gt;",
+  "metadata": {
+    "channel": "TIR-1",
+    "wavelength": "10.8um"
+  }
+}</pre>
+              </div>
+
+              <div style="background: #060a12; border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: #10b981; margin-bottom: 8px;">
+                  STANDARDIZED RESPONSE PAYLOAD
+                </div>
+                <pre style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #cbd5e1; overflow-x: auto; line-height: 1.4;">{
+  "detected": true,
+  "detectionConfidence": 0.94,
+  "classification": "Tropical Cyclone",
+  "category": "Category 3",
+  "windSpeed": 145.0,
+  "pressure": 945.0,
+  "prediction": {
+    "direction": "North-East",
+    "confidence": 0.87
+  }
+}</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Application Logic Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/mock-data.js"></script>
+  <script src="js/ui-helpers.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/map-service.js"></script>
+  <script src="js/charts-service.js"></script>
+  <script src="js/upload-demo.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

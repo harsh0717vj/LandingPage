@@ -1,0 +1,195 @@
+/* SmartCyclone AI - Leaflet Custom Map & Radar Theme */
+
+.map-card-wrapper {
+  position: relative;
+  width: 100%;
+  height: 520px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.leaflet-container {
+  background-color: #060a12 !important;
+  font-family: var(--font-body) !important;
+}
+
+/* Custom Marker - Cyclone Eye Pulse */
+.cyclone-eye-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.cyclone-eye-core {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 12px #ef4444, 0 0 24px #ef4444;
+  z-index: 10;
+}
+
+.cyclone-eye-pulse {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(239, 68, 68, 0.7);
+  background: rgba(239, 68, 68, 0.15);
+  animation: radar-pulse 2s infinite ease-out;
+}
+
+.cyclone-eye-pulse-outer {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 1px dashed rgba(239, 68, 68, 0.4);
+  animation: radar-pulse-delayed 2s infinite ease-out;
+}
+
+@keyframes radar-pulse {
+  0% { transform: scale(0.3); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+@keyframes radar-pulse-delayed {
+  0% { transform: scale(0.4); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Historical Track Point Marker */
+.track-node-marker {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f59e0b;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+/* Predicted Track Point Marker */
+.predicted-node-marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #38bdf8;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 0 10px #38bdf8;
+}
+
+/* Custom Leaflet Popups */
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.94) !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(10px) !important;
+  padding: 4px !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.94) !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+.popup-telemetry-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffffff;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 4px;
+}
+
+.popup-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.78rem;
+  margin: 3px 0;
+}
+
+.popup-label {
+  color: var(--text-dim);
+}
+
+.popup-val {
+  font-family: var(--font-mono);
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+
+/* Map HUD Control Overlay */
+.map-hud-legend {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(12, 19, 34, 0.88);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  z-index: 800;
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.legend-item:last-child {
+  margin-bottom: 0;
+}
+
+.legend-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-color-dot.historical { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+.legend-color-dot.current { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+.legend-color-dot.predicted { background: #38bdf8; box-shadow: 0 0 6px #38bdf8; }
+
+.map-layer-selector {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(12, 19, 34, 0.88);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  z-index: 800;
+  display: flex;
+  gap: 6px;
+  backdrop-filter: blur(10px);
+}
+
+.layer-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.layer-btn:hover, .layer-btn.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.3);
+  color: #ffffff;
+}
